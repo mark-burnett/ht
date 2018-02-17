@@ -1,0 +1,6 @@
+[package]
+name = "ht"
+version = "0.1.0"
+authors = ["Mark Burnett <mark.m.burnett@gmail.com>"]
+
+[dependencies]
