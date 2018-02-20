@@ -28,7 +28,8 @@ fn go() -> Result<(), Error> {
     let mut res = reqwest::get(&options.uri)?;
     let t = &theme::DEFAULT;
 
-    display::header(&res, t)?;
-    display::json(&mut res, t)?;
+    let mut stdout = std::io::stdout();
+    display::header(&mut stdout, &res, t)?;
+    display::json(&mut stdout, &mut res, t)?;
     Ok(())
 }

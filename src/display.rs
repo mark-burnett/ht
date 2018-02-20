@@ -3,10 +3,10 @@ use reqwest;
 use serde_json;
 use theme;
 use std::collections::BTreeMap;
-use std::io::{self, Write};
+use std::io::Write;
 
-pub fn header(res: &reqwest::Response, t: &theme::Theme) -> Result<(), Error> {
-    println!("{}", status_of(res, t));
+pub fn header(f: &mut Write, res: &reqwest::Response, t: &theme::Theme) -> Result<(), Error> {
+    f.write_all(status_of(res, t).as_bytes())?;
 
     let mut headers: BTreeMap<String, String> = BTreeMap::new();
     for h in res.headers().iter() {
@@ -14,12 +14,14 @@ pub fn header(res: &reqwest::Response, t: &theme::Theme) -> Result<(), Error> {
     }
 
     for (name, value) in headers {
-        println!(
-            "{}{} {}",
-            t.header_name.paint(name),
-            t.header_name.paint(":"),
-            t.header_value.paint(value),
-        );
+        f.write_all(
+            format!(
+                "{}{} {}\n",
+                t.header_name.paint(name),
+                t.header_name.paint(":"),
+                t.header_value.paint(value),
+            ).as_bytes(),
+        )?;
     }
     Ok(())
 }
@@ -40,19 +42,18 @@ fn status_of(res: &reqwest::Response, t: &theme::Theme) -> String {
     };
 
     format!(
-        "{} {}",
+        "{} {}\n",
         status_style.paint(format!("{}", res.status().as_u16())),
         t.status_message.paint(reason),
     )
 }
 
-pub fn json(res: &mut reqwest::Response, t: &theme::Theme) -> Result<(), Error> {
+pub fn json(f: &mut Write, res: &mut reqwest::Response, t: &theme::Theme) -> Result<(), Error> {
     let v: serde_json::Value = res.json()?;
-    let mut stdout = io::stdout();
-    stdout.write_all(b"\n")?;
+    f.write_all(b"\n")?;
     let indent: usize = 0;
-    _recursive_display(&mut stdout, &v, t, indent)?;
-    stdout.write_all(b"\n\n")?;
+    _recursive_display(f, &v, t, indent)?;
+    f.write_all(b"\n\n")?;
     Ok(())
 }
 
