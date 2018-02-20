@@ -14,14 +14,17 @@ mod theme;
 use failure::Error;
 
 fn main() {
-    let options = opt::get_options();
-    go(&options).unwrap_or_else(|err| {
-        eprintln!("{}", err);
-        std::process::exit(1);
-    });
+    std::process::exit(match go() {
+        Ok(_) => 0,
+        Err(e) => {
+            eprintln!("{}", e);
+            1
+        }
+    })
 }
 
-fn go(options: &opt::Options) -> Result<(), Error> {
+fn go() -> Result<(), Error> {
+    let options = opt::get_options()?;
     let mut res = reqwest::get(&options.uri)?;
     let t = &theme::DEFAULT;
 
