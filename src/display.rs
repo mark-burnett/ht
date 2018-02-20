@@ -75,7 +75,7 @@ fn _recursive_display(
             f.write_all(format!("{}", t.number_value.paint(format!("{}", n))).as_bytes())?
         }
         serde_json::Value::String(ref s) => {
-            f.write_all(format!("{}", t.string_value.paint(format!("{}", s))).as_bytes())?
+            f.write_all(format!("\"{}\"", t.string_value.paint(format!("{}", s))).as_bytes())?
         }
         serde_json::Value::Object(ref o) => {
             if o.is_empty() {
@@ -115,7 +115,7 @@ fn _display_array(
                 f.write_all(format!("{}", t.number_value.paint(format!("{}", n))).as_bytes())?
             }
             serde_json::Value::String(ref s) => {
-                f.write_all(format!("{}", t.string_value.paint(format!("{}", s))).as_bytes())?
+                f.write_all(format!("\"{}\"", t.string_value.paint(format!("{}", s))).as_bytes())?
             }
             serde_json::Value::Object(ref o) => {
                 _display_map(f, o, t, indent + 2)?;
@@ -157,7 +157,7 @@ fn _display_map(
                 f.write_all(format!("{}", t.number_value.paint(format!("{}", n))).as_bytes())?
             }
             serde_json::Value::String(ref s) => {
-                f.write_all(format!("{}", t.string_value.paint(format!("{}", s))).as_bytes())?
+                f.write_all(format!("\"{}\"", t.string_value.paint(format!("{}", s))).as_bytes())?
             }
             serde_json::Value::Object(ref o) => {
                 _display_map(f, o, t, indent + 2)?;
