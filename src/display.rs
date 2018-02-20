@@ -1,11 +1,12 @@
+use failure::Error;
 use reqwest;
 use serde_json;
 use theme;
 use std::collections::BTreeMap;
 use std::io::{self, Write};
 
-pub fn header(res: &reqwest::Response, t: &theme::Theme) {
-    println!("{}", status_of(&res, t));
+pub fn header(res: &reqwest::Response, t: &theme::Theme) -> Result<(), Error> {
+    println!("{}", status_of(res, t));
 
     let mut headers: BTreeMap<String, String> = BTreeMap::new();
     for h in res.headers().iter() {
@@ -20,6 +21,7 @@ pub fn header(res: &reqwest::Response, t: &theme::Theme) {
             t.header_value.paint(value),
         );
     }
+    Ok(())
 }
 
 fn status_of(res: &reqwest::Response, t: &theme::Theme) -> String {
@@ -44,84 +46,83 @@ fn status_of(res: &reqwest::Response, t: &theme::Theme) -> String {
     )
 }
 
-pub fn json(res: &mut reqwest::Response, t: &theme::Theme) {
-    let v: serde_json::Value = res.json().expect("non-json-response");
+pub fn json(res: &mut reqwest::Response, t: &theme::Theme) -> Result<(), Error> {
+    let v: serde_json::Value = res.json()?;
     let mut stdout = io::stdout();
-    stdout
-        .write_all(b"\n")
-        .expect("failed to write starting newline");
+    stdout.write_all(b"\n")?;
     let indent: usize = 0;
-    _recursive_display(&mut stdout, &v, t, indent);
-
-    stdout
-        .write_all(b"\n\n")
-        .expect("failed to write trailing newlines");
+    _recursive_display(&mut stdout, &v, t, indent)?;
+    stdout.write_all(b"\n\n")?;
+    Ok(())
 }
 
-fn _recursive_display(f: &mut Write, v: &serde_json::Value, t: &theme::Theme, indent: usize) {
+fn _recursive_display(
+    f: &mut Write,
+    v: &serde_json::Value,
+    t: &theme::Theme,
+    indent: usize,
+) -> Result<(), Error> {
     match *v {
-        serde_json::Value::Array(ref a) => _display_array(f, a, t, indent),
+        serde_json::Value::Array(ref a) => _display_array(f, a, t, indent)?,
         serde_json::Value::Bool(ref b) => {
-            f.write_all(format!("{}", t.bool_value.paint(format!("{}", b))).as_bytes())
-                .expect("Failed to write bool");
+            f.write_all(format!("{}", t.bool_value.paint(format!("{}", b))).as_bytes())?
         }
         serde_json::Value::Null => {
-            f.write_all(format!("{}", t.null_value.paint("null")).as_bytes())
-                .expect("Failed to write null");
+            f.write_all(format!("{}", t.null_value.paint("null")).as_bytes())?
         }
         serde_json::Value::Number(ref n) => {
-            f.write_all(format!("{}", t.number_value.paint(format!("{}", n))).as_bytes())
-                .expect("Failed to write number");
+            f.write_all(format!("{}", t.number_value.paint(format!("{}", n))).as_bytes())?
         }
         serde_json::Value::String(ref s) => {
-            f.write_all(format!("{}", t.string_value.paint(format!("{}", s))).as_bytes())
-                .expect("Failed to write string");
+            f.write_all(format!("{}", t.string_value.paint(format!("{}", s))).as_bytes())?
         }
         serde_json::Value::Object(ref o) => {
             if o.is_empty() {
-                f.write_all(b"{}").expect("Failed to write emtpy object");
+                f.write_all(b"{}")?
             } else {
-                _display_map(f, o, t, indent);
+                _display_map(f, o, t, indent)?
             };
         }
     };
+
+    Ok(())
 }
 
-fn _display_array(f: &mut Write, a: &[serde_json::Value], t: &theme::Theme, indent: usize) {
-    f.write_all(b"[").expect("Failed to write open of array");
+fn _display_array(
+    f: &mut Write,
+    a: &[serde_json::Value],
+    t: &theme::Theme,
+    indent: usize,
+) -> Result<(), Error> {
+    f.write_all(b"[")?;
     for (i, element) in a.iter().enumerate() {
         let comma = if i > 0 { "," } else { "" };
 
-        f.write_all(format!("{}\n{}", comma, " ".repeat(indent + 2)).as_bytes())
-            .expect("failed to write element separator");
+        f.write_all(format!("{}\n{}", comma, " ".repeat(indent + 2)).as_bytes())?;
 
         match *element {
             serde_json::Value::Array(ref child) => {
-                _display_array(f, child, t, indent + 2);
+                _display_array(f, child, t, indent + 2)?;
             }
             serde_json::Value::Bool(ref b) => {
-                f.write_all(format!("{}", t.bool_value.paint(format!("{}", b))).as_bytes())
-                    .expect("Failed to write bool");
+                f.write_all(format!("{}", t.bool_value.paint(format!("{}", b))).as_bytes())?
             }
             serde_json::Value::Null => {
-                f.write_all(format!("{}", t.null_value.paint("null")).as_bytes())
-                    .expect("Failed to write null");
+                f.write_all(format!("{}", t.null_value.paint("null")).as_bytes())?
             }
             serde_json::Value::Number(ref n) => {
-                f.write_all(format!("{}", t.number_value.paint(format!("{}", n))).as_bytes())
-                    .expect("Failed to write number");
+                f.write_all(format!("{}", t.number_value.paint(format!("{}", n))).as_bytes())?
             }
             serde_json::Value::String(ref s) => {
-                f.write_all(format!("{}", t.string_value.paint(format!("{}", s))).as_bytes())
-                    .expect("Failed to write string");
+                f.write_all(format!("{}", t.string_value.paint(format!("{}", s))).as_bytes())?
             }
             serde_json::Value::Object(ref o) => {
-                _display_map(f, o, t, indent + 2);
+                _display_map(f, o, t, indent + 2)?;
             }
         }
     }
-    f.write_all(format!("\n{}]", " ".repeat(indent)).as_bytes())
-        .expect("Failed to write close of array");
+    f.write_all(format!("\n{}]", " ".repeat(indent)).as_bytes())?;
+    Ok(())
 }
 
 fn _display_map(
@@ -129,8 +130,8 @@ fn _display_map(
     m: &serde_json::Map<String, serde_json::Value>,
     t: &theme::Theme,
     indent: usize,
-) {
-    f.write_all(b"{").expect("Failed to write start of object");
+) -> Result<(), Error> {
+    f.write_all(b"{")?;
     for (i, (k, v)) in m.iter().enumerate() {
         let comma = if i > 0 { "," } else { "" };
 
@@ -141,31 +142,27 @@ fn _display_map(
                 " ".repeat(indent + 2),
                 t.key.paint(format!("\"{}\"", k))
             ).as_bytes(),
-        ).expect("failed to write key");
+        )?;
 
         match *v {
-            serde_json::Value::Array(ref a) => _display_array(f, a, t, indent + 2),
+            serde_json::Value::Array(ref a) => _display_array(f, a, t, indent + 2)?,
             serde_json::Value::Bool(ref b) => {
-                f.write_all(format!("{}", t.bool_value.paint(format!("{}", b))).as_bytes())
-                    .expect("Failed to write bool");
+                f.write_all(format!("{}", t.bool_value.paint(format!("{}", b))).as_bytes())?
             }
             serde_json::Value::Null => {
-                f.write_all(format!("{}", t.null_value.paint("null")).as_bytes())
-                    .expect("Failed to write null");
+                f.write_all(format!("{}", t.null_value.paint("null")).as_bytes())?
             }
             serde_json::Value::Number(ref n) => {
-                f.write_all(format!("{}", t.number_value.paint(format!("{}", n))).as_bytes())
-                    .expect("Failed to write number");
+                f.write_all(format!("{}", t.number_value.paint(format!("{}", n))).as_bytes())?
             }
             serde_json::Value::String(ref s) => {
-                f.write_all(format!("{}", t.string_value.paint(format!("{}", s))).as_bytes())
-                    .expect("Failed to write string");
+                f.write_all(format!("{}", t.string_value.paint(format!("{}", s))).as_bytes())?
             }
             serde_json::Value::Object(ref o) => {
-                _display_map(f, o, t, indent + 2);
+                _display_map(f, o, t, indent + 2)?;
             }
         }
     }
-    f.write_all(format!("\n{}}}", " ".repeat(indent)).as_bytes())
-        .expect("Failed to write close of object");
+    f.write_all(format!("\n{}}}", " ".repeat(indent)).as_bytes())?;
+    Ok(())
 }
