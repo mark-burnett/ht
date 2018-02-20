@@ -10,6 +10,7 @@ mod opt;
 mod theme;
 
 use std::collections::BTreeMap;
+use std::io::Write;
 
 fn main() {
     let options = opt::get_options();
@@ -38,10 +39,16 @@ fn main() {
 }
 
 fn display(v: &serde_json::Value, t: &theme::Theme) {
-    println!();
+    let mut stdout = std::io::stdout();
+    stdout
+        .write_all(b"\n")
+        .expect("failed to write starting newline");
     let indent: usize = 0;
-    _recursive_display(&mut std::io::stdout(), v, t, indent);
-    println!("\n");
+    _recursive_display(&mut stdout, v, t, indent);
+
+    stdout
+        .write_all(b"\n\n")
+        .expect("failed to write trailing newlines");
 }
 
 fn _recursive_display(
