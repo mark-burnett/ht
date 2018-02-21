@@ -5,15 +5,17 @@ use theme;
 use std::collections::BTreeMap;
 use std::io::Write;
 
-pub fn header(f: &mut Write, res: &reqwest::Response, t: &theme::Theme) -> Result<(), Error> {
-    f.write_all(status_of(res, t).as_bytes())?;
-
-    let mut headers: BTreeMap<String, String> = BTreeMap::new();
-    for h in res.headers().iter() {
-        headers.insert(h.name().to_string(), h.value_string());
+pub fn header(
+    f: &mut Write,
+    headers: &reqwest::header::Headers,
+    t: &theme::Theme,
+) -> Result<(), Error> {
+    let mut hmap: BTreeMap<String, String> = BTreeMap::new();
+    for h in headers.iter() {
+        hmap.insert(h.name().to_string(), h.value_string());
     }
 
-    for (name, value) in headers {
+    for (name, value) in hmap {
         f.write_all(
             format!(
                 "{}{} {}\n",
@@ -26,8 +28,11 @@ pub fn header(f: &mut Write, res: &reqwest::Response, t: &theme::Theme) -> Resul
     Ok(())
 }
 
-fn status_of(res: &reqwest::Response, t: &theme::Theme) -> String {
-    let s = res.status();
+pub fn response_status(
+    f: &mut Write,
+    s: &reqwest::StatusCode,
+    t: &theme::Theme,
+) -> Result<(), Error> {
     let status_style = if s.is_informational() || s.is_redirection() {
         t.status_info
     } else if s.is_success() {
@@ -41,19 +46,53 @@ fn status_of(res: &reqwest::Response, t: &theme::Theme) -> String {
         None => "",
     };
 
-    format!(
-        "{} {}\n",
-        status_style.paint(format!("{}", res.status().as_u16())),
-        t.status_message.paint(reason),
-    )
+    f.write_all(
+        format!(
+            "{} {}\n",
+            status_style.paint(format!("{}", s.as_u16())),
+            t.status_message.paint(reason),
+        ).as_bytes(),
+    )?;
+    Ok(())
 }
 
-pub fn json(f: &mut Write, res: &mut reqwest::Response, t: &theme::Theme) -> Result<(), Error> {
+pub fn request_path(f: &mut Write, req: &reqwest::Request, _t: &theme::Theme) -> Result<(), Error> {
+    f.write_all(format!("Wee: {:?}\n", req).as_bytes())?;
+    Ok(())
+}
+
+pub fn formatted_response(
+    f: &mut Write,
+    res: &mut reqwest::Response,
+    t: &theme::Theme,
+) -> Result<(), Error> {
+    let thing = if let Some(ct) = res.headers().get::<reqwest::header::ContentType>() {
+        match (ct.type_().as_str(), ct.subtype().as_str()) {
+            ("application", "json") => json_display,
+            _ => unformatted_response,
+        }
+    } else {
+        unformatted_response
+    };
+    thing(f, res, t)
+}
+
+fn json_display(f: &mut Write, res: &mut reqwest::Response, t: &theme::Theme) -> Result<(), Error> {
     let v: serde_json::Value = res.json()?;
     f.write_all(b"\n")?;
     let indent: usize = 0;
     _recursive_display(f, &v, t, indent)?;
     f.write_all(b"\n\n")?;
+    Ok(())
+}
+
+pub fn unformatted_response(
+    f: &mut Write,
+    res: &mut reqwest::Response,
+    _: &theme::Theme,
+) -> Result<(), Error> {
+    f.write_all(b"\n")?;
+    res.copy_to(f)?;
     Ok(())
 }
 

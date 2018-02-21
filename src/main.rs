@@ -1,7 +1,10 @@
+#![feature(nll)]
+
 extern crate ansi_term;
 extern crate clap;
 extern crate failure;
 extern crate libc;
+extern crate regex;
 extern crate reqwest;
 extern crate serde_json;
 
@@ -27,18 +30,32 @@ fn main() {
 fn go() -> Result<(), Error> {
     let options = opt::get_options()?;
 
-    let mut res = reqwest::get(&options.uri)?;
-
     let mut stdout = std::io::stdout();
 
-    if options.display_res_headers {
-        display::header(&mut stdout, &res, options.theme)?;
+    let req = reqwest::Request::new(options.method, options.url);
+    if options.display_req_headers {
+        display::request_path(&mut stdout, &req, options.theme)?;
+        display::header(&mut stdout, req.headers(), options.theme)?;
     }
 
-    if options.format_bodies {
-        display::json(&mut stdout, &mut res, options.theme)?;
-    } else {
-        res.copy_to(&mut stdout)?;
+    if options.display_req_bodies {
+        // Awkwardly, might need to do this before building the request.
+        unimplemented!()
+    }
+
+    let mut res = reqwest::Client::new().execute(req)?;
+
+    if options.display_res_headers {
+        display::response_status(&mut stdout, &res.status(), options.theme)?;
+        display::header(&mut stdout, res.headers(), options.theme)?;
+    }
+
+    if options.display_res_bodies {
+        if options.format_bodies {
+            display::formatted_response(&mut stdout, &mut res, options.theme)?;
+        } else {
+            display::unformatted_response(&mut stdout, &mut res, options.theme)?;
+        }
     }
 
     Ok(())
