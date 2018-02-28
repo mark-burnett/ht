@@ -2,6 +2,29 @@
 name = "ht"
 version = "0.1.0"
 authors = ["Mark Burnett <mark.m.burnett@gmail.com>"]
+license = "Apache-2.0"
+description = "ht is a user-friendly command line HTTP client inspired by HTTPie."
+keywords = [
+    "cli",
+    "curl",
+    "http",
+    "json",
+    "web",
+]
+categories = [
+    "command-line-utilities",
+    "development-tools",
+    "web-programming::http-client",
+]
+include = [
+    "Cargo.lock",  # This will be ignore currently, but may be included eventually: https://github.com/rust-lang/cargo/issues/2263
+    "Cargo.toml",
+    "src/**",
+]
+documentation = "https://github.com/mark-burnett/ht"
+homepage = "https://github.com/mark-burnett/ht"
+repository = "https://github.com/mark-burnett/ht"
+readme = "README.md"
 
 [dependencies]
 ansi_term = "0.10"
