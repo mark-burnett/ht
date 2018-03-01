@@ -40,6 +40,7 @@ pub fn header(
             ).as_bytes(),
         )?;
     }
+    f.write_all(b"\n")?;
     Ok(())
 }
 
@@ -94,7 +95,6 @@ pub fn formatted_response(
 
 fn json_display(f: &mut Write, res: &mut reqwest::Response, t: &theme::Theme) -> Result<(), Error> {
     let v: serde_json::Value = res.json()?;
-    f.write_all(b"\n")?;
     let indent: usize = 0;
     _recursive_display(f, &v, t, indent)?;
     f.write_all(b"\n\n")?;
@@ -106,7 +106,6 @@ pub fn unformatted_response(
     res: &mut reqwest::Response,
     _: &theme::Theme,
 ) -> Result<(), Error> {
-    f.write_all(b"\n")?;
     res.copy_to(f)?;
     Ok(())
 }
@@ -220,4 +219,61 @@ fn _display_map(
     }
     f.write_all(format!("\n{}}}", " ".repeat(indent)).as_bytes())?;
     Ok(())
+}
+
+#[cfg(test)]
+mod test {
+    use std::vec::Vec;
+    use reqwest;
+    use super::super::theme;
+    use ansi_term::Color;
+
+    lazy_static! {
+        static ref TEST_THEME: theme::Theme = theme::Theme {
+            header_name: Color::RGB(0, 0, 0).normal(),
+            header_value: Color::RGB(0, 0, 1).normal(),
+            bool_value: Color::RGB(0, 1, 0).normal(),
+            key: Color::RGB(0, 1, 1).normal(),
+            null_value: Color::RGB(0, 1, 2).normal(),
+            number_value: Color::RGB(0, 1, 3).normal(),
+            string_value: Color::RGB(0, 1, 4).normal(),
+            status_error: Color::RGB(0, 2, 0).normal(),
+            status_info: Color::RGB(0, 2, 1).normal(),
+            status_message: Color::RGB(0, 2, 3).normal(),
+            status_success: Color::RGB(0, 2, 4).normal(),
+        };
+    }
+
+    #[test]
+    fn test_write_empty_header() {
+        let mut buf: Vec<u8> = vec![];
+        let headers = reqwest::header::Headers::new();
+        super::header(&mut buf, &headers, &theme::EMPTY).unwrap();
+        assert_eq!(&buf, b"\n");
+    }
+
+    #[test]
+    fn test_write_ordered_headers() {
+        let mut buf: Vec<u8> = vec![];
+        let mut headers = reqwest::header::Headers::new();
+        headers.set_raw("x-foo", "bar");
+        headers.set_raw("x-bar", "foo");
+        super::header(&mut buf, &headers, &theme::EMPTY).unwrap();
+        assert_eq!(
+            String::from_utf8(buf).unwrap(),
+            "x-bar: foo\nx-foo: bar\n\n"
+        );
+    }
+
+    #[test]
+    fn test_write_colorized_header() {
+        let mut buf: Vec<u8> = vec![];
+        let mut headers = reqwest::header::Headers::new();
+        headers.set_raw("x-foo", "bar");
+        super::header(&mut buf, &headers, &TEST_THEME).unwrap();
+        assert_eq!(
+            String::from_utf8(buf).unwrap(),
+            "\u{1b}[38;2;0;0;0mx-foo\u{1b}[0m\u{1b}[38;2;0;0;0m:\u{1b}[0m \u{1b}[38;2;0;0;1mbar\u{1b}[0m\n\n"
+         );
+    }
 }
