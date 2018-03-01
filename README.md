@@ -19,7 +19,7 @@ cargo install ht
 Currently, only `GET` is supported:
 
 ```bash
-ht https://httpbin.org/get?show_env=1&foo=baz&foo=bar
+ht 'https://httpbin.org/get?show_env=1&foo=baz&foo=bar'
 ```
 
 ## License
