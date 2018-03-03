@@ -245,6 +245,43 @@ mod test {
     }
 
     #[test]
+    fn test_status_ok_empty() {
+        let mut buf: Vec<u8> = vec![];
+        super::response_status(&mut buf, &reqwest::StatusCode::Ok, &theme::EMPTY).unwrap();
+        assert_eq!(String::from_utf8(buf).unwrap(), "200 OK\n");
+    }
+
+    #[test]
+    fn test_status_ok_color() {
+        let mut buf: Vec<u8> = vec![];
+        super::response_status(&mut buf, &reqwest::StatusCode::Ok, &TEST_THEME).unwrap();
+        assert_eq!(
+            String::from_utf8(buf).unwrap(),
+            "\u{1b}[38;2;0;2;4m200\u{1b}[0m \u{1b}[38;2;0;2;3mOK\u{1b}[0m\n"
+        );
+    }
+
+    #[test]
+    fn test_status_400_color() {
+        let mut buf: Vec<u8> = vec![];
+        super::response_status(&mut buf, &reqwest::StatusCode::BadRequest, &TEST_THEME).unwrap();
+        assert_eq!(
+            String::from_utf8(buf).unwrap(),
+            "\u{1b}[38;2;0;2;0m400\u{1b}[0m \u{1b}[38;2;0;2;3mBad Request\u{1b}[0m\n"
+        );
+    }
+
+    #[test]
+    fn test_status_100_color() {
+        let mut buf: Vec<u8> = vec![];
+        super::response_status(&mut buf, &reqwest::StatusCode::Continue, &TEST_THEME).unwrap();
+        assert_eq!(
+            String::from_utf8(buf).unwrap(),
+            "\u{1b}[38;2;0;2;1m100\u{1b}[0m \u{1b}[38;2;0;2;3mContinue\u{1b}[0m\n"
+        );
+    }
+
+    #[test]
     fn test_write_empty_header() {
         let mut buf: Vec<u8> = vec![];
         let headers = reqwest::header::Headers::new();
