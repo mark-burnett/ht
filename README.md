@@ -1,5 +1,7 @@
 # ht
 
+**DEPRECATED**: This project has been superceded by [decaale/ht](https://github.com/ducaale/ht).
+
 ht is a user-friendly alternative to curl, inspired by
 [HTTPie](https://github.com/jakubroztocil/httpie).
 
